@@ -13,12 +13,17 @@ public class BankAccount {
         this.balance = initialBalance;
     }
 
-    public int getId(){
-        return  id;
+    public int getId() {
+        return id;
     }
+
     public int getBalance() {
-        // TODO: Consider locking (if needed)
-        return balance;
+        lock.lock();
+        try {
+            return balance;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public Lock getLock() {
@@ -26,16 +31,54 @@ public class BankAccount {
     }
 
     public void deposit(int amount) {
-        // TODO: Safely add to balance.
+        lock.lock();
+        try {
+            if (amount < 0) {
+                throw new IllegalArgumentException("Cannot deposit a negative amount");
+            }
+            balance += amount;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void withdraw(int amount) {
-        // TODO: Safely withdraw from balance.
+        lock.lock();
+        try {
+            if (amount < 0) {
+                throw new IllegalArgumentException("Cannot withdraw a negative amount");
+            }
+            if (balance >= amount) {
+                balance -= amount;
+            } else {
+                throw new IllegalArgumentException("Insufficient balance");
+            }
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void transfer(BankAccount target, int amount) {
-        // TODO: Safely make the changes
-        // HINT: Both accounts need to be locked, while the changes are being made
-        // HINT: Be cautious of potential deadlocks.
+        if (target == null) {
+            throw new IllegalArgumentException("Target account cannot be null");
+        }
+
+        // Lock ordering to prevent deadlock
+        BankAccount firstLock = this.id < target.id ? this : target;
+        BankAccount secondLock = this.id < target.id ? target : this;
+
+        firstLock.getLock().lock();
+        secondLock.getLock().lock();
+        try {
+            if (this.balance >= amount) {
+                this.withdraw(amount);  // Already synchronized
+                target.deposit(amount); // Already synchronized
+            } else {
+                throw new IllegalArgumentException("Insufficient balance for transfer");
+            }
+        } finally {
+            secondLock.getLock().unlock();
+            firstLock.getLock().unlock();
+        }
     }
 }
