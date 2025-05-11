@@ -61,7 +61,7 @@ public class MonteCarloPi {
                 for (long j = 0; j < pointsPerThread; j++) {
                     double x = rand.nextDouble();
                     double y = rand.nextDouble();
-                    if (x * x + y * y <= 1.0) {
+                    if (x * x + y * y <= 1.0) { 
                         localInside++;
                     }
                 }
